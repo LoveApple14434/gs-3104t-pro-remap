@@ -1,0 +1,16 @@
+input_device: "/dev/input/event11"
+grab_input: true
+
+map_rules:
+  - "brightnessdown:f1"
+  - "brightnessup:f2"
+  - "scale:f3"
+  - "all_applications:f4"
+  - "kbdillumdown:f5"
+  - "kbdillumup:f6"
+  - "previoussong:f7"
+  - "playpause:f8"
+  - "nextsong:f9"
+  - "mute:f10"
+  - "volumedown:f11"
+  - "volumeup:f12"
