@@ -14,12 +14,35 @@ strip_yaml_value() {
     echo "$value"
 }
 
+discover_input_devices() {
+    local device_keyword="$1"
+
+    if ! command -v libinput >/dev/null 2>&1; then
+        echo "配置错误: 找不到 libinput 命令，请先安装 libinput" >&2
+        exit 1
+    fi
+
+    libinput list-devices | awk -v keyword="$device_keyword" '
+        BEGIN { include = 0 }
+        /^[[:space:]]*Device:[[:space:]]+/ {
+            include = ($0 ~ keyword)
+            next
+        }
+        include && /^[[:space:]]*Kernel:[[:space:]]+/ {
+            kernel = $0
+            sub(/^[[:space:]]*Kernel:[[:space:]]+/, "", kernel)
+            print kernel
+        }
+    ' | awk '!seen[$0]++'
+}
+
 parse_yaml_config() {
     local yaml_file="$1"
     local line
-    local in_map_rules="false"
+    local section=""
 
-    INPUT_DEVICE=""
+    DEVICE_KEYWORD="GS3104T"
+    INPUT_DEVICES=()
     GRAB_INPUT="true"
     MAP_RULES=()
 
@@ -31,29 +54,47 @@ parse_yaml_config() {
         fi
 
         if [[ "$line" =~ ^[[:space:]]*input_device:[[:space:]]*(.+)[[:space:]]*$ ]]; then
-            INPUT_DEVICE="$(strip_yaml_value "${BASH_REMATCH[1]}")"
-            in_map_rules="false"
+            # Backward compatible with the old single-device key.
+            INPUT_DEVICES=("$(strip_yaml_value "${BASH_REMATCH[1]}")")
+            section=""
+            continue
+        fi
+
+        if [[ "$line" =~ ^[[:space:]]*device_keyword:[[:space:]]*(.+)[[:space:]]*$ ]]; then
+            DEVICE_KEYWORD="$(strip_yaml_value "${BASH_REMATCH[1]}")"
+            section=""
+            continue
+        fi
+
+        if [[ "$line" =~ ^[[:space:]]*input_devices:[[:space:]]*$ ]]; then
+            INPUT_DEVICES=()
+            section="input_devices"
             continue
         fi
 
         if [[ "$line" =~ ^[[:space:]]*grab_input:[[:space:]]*(.+)[[:space:]]*$ ]]; then
             GRAB_INPUT="$(strip_yaml_value "${BASH_REMATCH[1]}")"
-            in_map_rules="false"
+            section=""
             continue
         fi
 
         if [[ "$line" =~ ^[[:space:]]*map_rules:[[:space:]]*$ ]]; then
-            in_map_rules="true"
+            section="map_rules"
             continue
         fi
 
-        if [[ "$in_map_rules" == "true" && "$line" =~ ^[[:space:]]*-[[:space:]]*(.+)[[:space:]]*$ ]]; then
+        if [[ "$section" == "input_devices" && "$line" =~ ^[[:space:]]*-[[:space:]]*(.+)[[:space:]]*$ ]]; then
+            INPUT_DEVICES+=("$(strip_yaml_value "${BASH_REMATCH[1]}")")
+            continue
+        fi
+
+        if [[ "$section" == "map_rules" && "$line" =~ ^[[:space:]]*-[[:space:]]*(.+)[[:space:]]*$ ]]; then
             MAP_RULES+=("$(strip_yaml_value "${BASH_REMATCH[1]}")")
             continue
         fi
 
-        if [[ "$line" =~ ^[^[:space:]] ]]; then
-            in_map_rules="false"
+        if [[ "$line" =~ ^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*:[[:space:]]* ]]; then
+            section=""
         fi
     done < "$yaml_file"
 }
@@ -66,9 +107,8 @@ fi
 
 parse_yaml_config "$CONFIG_FILE"
 
-if [[ -z "${INPUT_DEVICE:-}" ]]; then
-    echo "配置错误: INPUT_DEVICE 不能为空" >&2
-    exit 1
+if [[ ${#INPUT_DEVICES[@]} -eq 0 ]]; then
+    mapfile -t INPUT_DEVICES < <(discover_input_devices "$DEVICE_KEYWORD")
 fi
 
 if [[ ${#MAP_RULES[@]} -eq 0 ]]; then
@@ -76,11 +116,23 @@ if [[ ${#MAP_RULES[@]} -eq 0 ]]; then
     exit 1
 fi
 
-args=(--input "$INPUT_DEVICE")
-
-if [[ "${GRAB_INPUT:-true}" == "true" ]]; then
-    args+=(grab)
+if [[ ${#INPUT_DEVICES[@]} -eq 0 ]]; then
+    echo "配置错误: 未找到名称包含 ${DEVICE_KEYWORD} 的输入设备" >&2
+    exit 1
 fi
+
+echo "检测到的输入设备:" >&2
+printf '  %s\n' "${INPUT_DEVICES[@]}" >&2
+
+args=()
+
+for input_device in "${INPUT_DEVICES[@]}"; do
+    args+=(--input "$input_device")
+
+    if [[ "${GRAB_INPUT:-true}" == "true" ]]; then
+        args+=(grab)
+    fi
+done
 
 for rule in "${MAP_RULES[@]}"; do
     IFS=':' read -r src_key dst_key <<< "$rule"

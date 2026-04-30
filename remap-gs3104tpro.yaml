@@ -1,4 +1,5 @@
-input_device: "/dev/input/event11"
+device_keyword: "GS3104T"
+
 grab_input: true
 
 map_rules:

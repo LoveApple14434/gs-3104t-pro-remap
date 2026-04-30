@@ -1,0 +1,13 @@
+[Unit]
+Description=GS3104TPRO Keyboard Remap via evsieve
+After=local-fs.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/kbd-drive
+ExecStart=/opt/kbd-drive/remap-gs3104tpro.sh /opt/kbd-drive/remap-gs3104tpro.yaml
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
