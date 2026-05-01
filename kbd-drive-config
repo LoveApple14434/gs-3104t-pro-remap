@@ -1,0 +1,3 @@
+#!/bin/bash
+# Desktop GUI launcher for kbd-drive configuration editor
+exec python3 /usr/lib/kbd-drive/kbd-drive-desktop-app.py "$@"

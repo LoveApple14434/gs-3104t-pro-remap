@@ -1,0 +1,3 @@
+#!/bin/bash
+# Web browser launcher for kbd-drive configuration editor
+exec python3 /usr/lib/kbd-drive/kbd-drive-config-ui.py "$@"

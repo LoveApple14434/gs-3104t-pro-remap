@@ -30,6 +30,8 @@ package() {
     install -Dm755 remap-gs3104tpro.sh "${pkgdir}/usr/lib/kbd-drive/remap-gs3104tpro.sh"
     install -Dm755 kbd-drive-config-ui.py "${pkgdir}/usr/lib/kbd-drive/kbd-drive-config-ui.py"
     install -Dm755 kbd-drive-desktop-app.py "${pkgdir}/usr/lib/kbd-drive/kbd-drive-desktop-app.py"
+    install -Dm755 kbd-drive-config "${pkgdir}/usr/bin/kbd-drive-config"
+    install -Dm755 kbd-drive-config-web "${pkgdir}/usr/bin/kbd-drive-config-web"
     install -Dm644 remap-gs3104tpro.yaml "${pkgdir}/etc/kbd-drive/remap-gs3104tpro.yaml"
     install -Dm644 kbd-drive-remap-editor.desktop "${pkgdir}/usr/share/applications/kbd-drive-remap-editor.desktop"
 
