@@ -31,10 +31,42 @@ map_rules:
 
 - `remap-gs3104tpro.yaml`：重映射规则配置，包含 `device_keyword`、`grab_input` 和 `map_rules`
 - `remap-gs3104tpro.sh`：读取 YAML 配置并启动 evsieve
+- `kbd-drive-config-ui.py`：单页 Web 配置编辑器，支持读入、编辑、预览和保存 YAML
 
 map_rules 中每一项格式为 源键:目标键，例如 brightnessdown:f1。
 
 如果键盘型号或设备名关键字变化，只需要修改 `device_keyword`。
+
+## 单页编辑器
+
+项目内新增了一个本地单页网页应用，用于直接修改配置项并预览最终写出的 YAML。
+
+它会自动打开浏览器页面，所有配置都在同一页内完成，不再使用文件选择框或分步弹窗。
+
+它目前支持：
+
+- 编辑 `device_keyword`
+- 切换 `grab_input`
+- 编辑 `input_devices`
+- 编辑 `map_rules`
+- 直接保存到 systemd 服务正在使用的 YAML 路径
+- 查看 `gs3104tpro-remap.service` 的状态和最近日志
+- 执行启动、停止、重启、启用、禁用等 service 操作
+
+保存会直接写入 systemd 服务使用的 YAML 路径，不再让你选择位置；如果保存和服务操作需要权限，页面会尝试使用 `pkexec` 或 `sudo -n`。
+
+如果安装了打包后的桌面入口，可以从应用菜单启动；开发状态下也可以直接运行 `kbd-drive-config-ui.py`。
+
+### 编辑器排障
+
+如果页面能打开但一直停在“正在加载配置…”，通常是本地运行的旧版本脚本仍在占用端口。可先结束旧进程后重启：
+
+```bash
+pkill -f kbd-drive-config-ui.py || true
+python ./kbd-drive-config-ui.py
+```
+
+开发时请保持脚本内嵌 HTML/JS 模板为 raw string 形式（`Template(r"""...""")`），否则 Python 会吞掉 JavaScript 反斜杠，导致前端脚本在加载阶段报 `SyntaxError`，状态接口不会渲染到页面。
 
 ## 运行
 
@@ -65,3 +97,38 @@ sudo systemctl enable --now gs3104tpro-remap.service
 ```bash
 sudo systemctl status gs3104tpro-remap.service --no-pager
 ```
+
+## AUR 打包与发布
+
+仓库已包含 AUR 需要的文件：
+
+- `PKGBUILD`
+- `.SRCINFO`
+- `kbd-drive-remap-git.install`
+
+本项目当前采用 `-git` 包名：`kbd-drive-remap-git`。
+
+### 本地检查
+
+```bash
+makepkg --printsrcinfo > .SRCINFO
+makepkg -si
+```
+
+### 发布到 AUR
+
+```bash
+# 1) 克隆你的 AUR 仓库（首次）
+git clone ssh://aur@aur.archlinux.org/kbd-drive-remap-git.git aur-kbd-drive-remap-git
+
+# 2) 复制打包文件
+cp PKGBUILD .SRCINFO kbd-drive-remap-git.install aur-kbd-drive-remap-git/
+
+# 3) 提交并推送
+cd aur-kbd-drive-remap-git
+git add PKGBUILD .SRCINFO kbd-drive-remap-git.install
+git commit -m "Initial release"
+git push
+```
+
+推送后可在 AUR 页面查看构建元数据是否更新。
