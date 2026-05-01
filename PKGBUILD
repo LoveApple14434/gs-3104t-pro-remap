@@ -2,11 +2,11 @@
 pkgname=kbd-drive-remap-git
 pkgver=r0.g0000000
 pkgrel=1
-pkgdesc='Keyboard key remap via evsieve, systemd, and a single-page web editor'
+pkgdesc='Keyboard key remap via evsieve, systemd, and a desktop webview editor'
 arch=('any')
 url='https://github.com/LoveApple14434/gs-3104t-pro-remap'
 license=('custom:unlicensed')
-depends=('bash' 'evsieve' 'libinput-tools' 'python')
+depends=('bash' 'evsieve' 'libinput-tools' 'python' 'python-pywebview')
 makedepends=('git')
 optdepends=('systemd: enable gs3104tpro-remap.service for auto-start' 'pkexec: allow in-page systemd control and config saving without root terminal')
 provides=('kbd-drive-remap')
@@ -29,6 +29,7 @@ package() {
 
     install -Dm755 remap-gs3104tpro.sh "${pkgdir}/usr/lib/kbd-drive/remap-gs3104tpro.sh"
     install -Dm755 kbd-drive-config-ui.py "${pkgdir}/usr/lib/kbd-drive/kbd-drive-config-ui.py"
+    install -Dm755 kbd-drive-desktop-app.py "${pkgdir}/usr/lib/kbd-drive/kbd-drive-desktop-app.py"
     install -Dm644 remap-gs3104tpro.yaml "${pkgdir}/etc/kbd-drive/remap-gs3104tpro.yaml"
     install -Dm644 kbd-drive-remap-editor.desktop "${pkgdir}/usr/share/applications/kbd-drive-remap-editor.desktop"
 

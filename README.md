@@ -53,6 +53,8 @@ map_rules 中每一项格式为 源键:目标键，例如 brightnessdown:f1。
 - 查看 `gs3104tpro-remap.service` 的状态和最近日志
 - 执行启动、停止、重启、启用、禁用等 service 操作
 
+应用菜单默认启动的是桌面应用窗口（WebView），不会再单独弹出系统浏览器。
+
 保存会直接写入 systemd 服务使用的 YAML 路径，不再让你选择位置；如果保存和服务操作需要权限，页面会尝试使用 `pkexec` 或 `sudo -n`。
 
 如果安装了打包后的桌面入口，可以从应用菜单启动；开发状态下也可以直接运行 `kbd-drive-config-ui.py`。
@@ -67,6 +69,16 @@ python ./kbd-drive-config-ui.py
 ```
 
 开发时请保持脚本内嵌 HTML/JS 模板为 raw string 形式（`Template(r"""...""")`），否则 Python 会吞掉 JavaScript 反斜杠，导致前端脚本在加载阶段报 `SyntaxError`，状态接口不会渲染到页面。
+
+### 桌面应用启动
+
+开发环境可直接运行：
+
+```bash
+python ./kbd-drive-desktop-app.py
+```
+
+该启动器会自动拉起本地后端并在窗口中加载配置页面，关闭窗口时会自动退出后端。
 
 ## 运行
 
