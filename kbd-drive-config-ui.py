@@ -352,6 +352,7 @@ def render_page() -> str:
     .status-box {
       background: #0f172a; color: #dbeafe; border-radius: 18px; padding: 16px; min-height: 160px; overflow: auto;
       white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+      will-change: contents;
     }
     .error-box {
       border-radius: 16px; padding: 12px 14px; background: rgba(185, 28, 28, 0.08); border: 1px solid rgba(185, 28, 28, 0.22);
@@ -640,9 +641,17 @@ def render_page() -> str:
       validationBox.textContent = error.message;
     });
 
-    setInterval(() => {
-      loadState().catch(() => {});
-    }, 5000);
+    // 只定期刷新服务状态，不刷新表单数据以避免闪烁
+    async function refreshServiceOnly() {
+      try {
+        const payload = await apiGet('/api/state');
+        renderService(payload.service);
+      } catch (error) {
+        // 静默失败，不打断用户编辑
+      }
+    }
+
+    setInterval(refreshServiceOnly, 5000);
   </script>
 </body>
 </html>
