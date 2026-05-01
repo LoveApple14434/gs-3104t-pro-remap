@@ -265,14 +265,14 @@ def render_page() -> str:
   <style>
     :root {
       color-scheme: light;
-      --bg: #f4efe7;
+      --bg: #fef0f1;
       --panel: rgba(255, 255, 255, 0.82);
       --panel-strong: #ffffff;
       --text: #1c2430;
       --muted: #667181;
       --border: rgba(28, 36, 48, 0.14);
-      --accent: #cc5a2d;
-      --accent-2: #0f766e;
+      --accent: #ec4899;
+      --accent-2: #f472b6;
       --danger: #b91c1c;
       --shadow: 0 24px 60px rgba(28, 36, 48, 0.12);
     }
@@ -282,9 +282,9 @@ def render_page() -> str:
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(204, 90, 45, 0.18), transparent 28%),
-        radial-gradient(circle at right top, rgba(15, 118, 110, 0.14), transparent 24%),
-        linear-gradient(180deg, #fbf7f2 0%, var(--bg) 100%);
+        radial-gradient(circle at top left, rgba(236, 72, 153, 0.15), transparent 28%),
+        radial-gradient(circle at right top, rgba(244, 114, 182, 0.12), transparent 24%),
+        linear-gradient(180deg, #fff5f7 0%, var(--bg) 100%);
       min-height: 100vh;
     }
     .shell { max-width: 1520px; margin: 0 auto; padding: 28px; }
@@ -382,7 +382,6 @@ def render_page() -> str:
       <div class="toolbar">
         <button class="ghost" id="refreshAllBtn" type="button">刷新全部</button>
         <button class="primary" id="saveBtn" type="button">保存配置</button>
-        <button class="ghost" id="quitBtn" type="button">退出编辑器</button>
       </div>
     </div>
 
@@ -619,7 +618,6 @@ def render_page() -> str:
 
     document.getElementById('refreshAllBtn').addEventListener('click', loadState);
     document.getElementById('saveBtn').addEventListener('click', saveConfig);
-    document.getElementById('quitBtn').addEventListener('click', quitEditor);
     document.querySelectorAll('[data-action]').forEach(button => {
       button.addEventListener('click', async () => {
         const action = button.getAttribute('data-action');
