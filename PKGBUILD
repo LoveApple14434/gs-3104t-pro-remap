@@ -1,5 +1,5 @@
 # Maintainer: Harry LoveApple14434 <harry.zy.su@qq.com>
-pkgname=kbd-drive-remap
+pkgname=kbd-drive-remap-git
 pkgver=r0.g0000000
 pkgrel=1
 pkgdesc='Keyboard key remap via evsieve, systemd, and a desktop webview editor (git package)'
