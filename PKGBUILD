@@ -1,8 +1,8 @@
 # Maintainer: Harry LoveApple14434 <harry.zy.su@qq.com>
-pkgname=kbd-drive-remap-git
+pkgname=kbd-drive-remap
 pkgver=r0.g0000000
 pkgrel=1
-pkgdesc='Keyboard key remap via evsieve, systemd, and a desktop webview editor'
+pkgdesc='Keyboard key remap via evsieve, systemd, and a desktop webview editor (git package)'
 arch=('any')
 url='https://github.com/LoveApple14434/gs-3104t-pro-remap'
 license=('custom:unlicensed')
