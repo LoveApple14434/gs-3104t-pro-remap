@@ -27,32 +27,39 @@ discover_input_devices() {
     fi
 
     libinput list-devices | awk -v dkw="$device_keyword" -v ckw="$caps_keyword" '
-        BEGIN { include = 0; caps = ""; dev = "" }
+        BEGIN { dev = ""; caps = ""; dev_match = 0; caps_match = 0; matched_by = "" }
         /^[[:space:]]*Device:[[:space:]]+/ {
             dev = $0
-            include = 0
-            if (dkw != "" && index(dev, dkw) > 0) include = 1
+            dev_match = 0
             caps = ""
+            matched_by = ""
+            if (dkw != "" && index(dev, dkw) > 0) dev_match = 1
             next
         }
         /^[[:space:]]*Capabilities:[[:space:]]+/ {
             caps = $0
-            if (ckw != "" && index(caps, ckw) > 0) {
-                include = 1
-                matched_by = "capabilities"
-            }
+            caps_match = 0
+            if (ckw != "" && index(caps, ckw) > 0) caps_match = 1
             next
         }
-        include && /^[[:space:]]*Kernel:[[:space:]]+/ {
+        /^[[:space:]]*Kernel:[[:space:]]+/ {
             kernel = $0
             sub(/^[[:space:]]*Kernel:[[:space:]]+/, "", kernel)
-            # 将匹配到的设备行也写入 stderr 以便调试
-            if (matched_by == "capabilities") {
-                print "DEBUG_MATCH(cap): Device: " dev " | Capabilities: " caps " | Kernel: " kernel > "/dev/stderr"
-            } else {
-                print "DEBUG_MATCH(dev): Device: " dev " | Capabilities: " caps " | Kernel: " kernel > "/dev/stderr"
+
+            # 决定是否同时满足两个关键词或单个关键词
+            do_print = 0
+            if (dkw != "" && ckw != "") {
+                if (dev_match && caps_match) { matched_by = "both"; do_print = 1 }
+            } else if (dkw != "") {
+                if (dev_match) { matched_by = "dev"; do_print = 1 }
+            } else if (ckw != "") {
+                if (caps_match) { matched_by = "cap"; do_print = 1 }
             }
-            print kernel
+
+            if (do_print) {
+                print "DEBUG_MATCH(" matched_by "): Device: " dev " | Capabilities: " caps " | Kernel: " kernel > "/dev/stderr"
+                print kernel
+            }
         }
     ' | awk '!seen[$0]++'
 }
