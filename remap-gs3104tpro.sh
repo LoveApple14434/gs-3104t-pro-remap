@@ -27,27 +27,14 @@ discover_input_devices() {
     fi
 
     libinput list-devices | awk -v dkw="$device_keyword" -v ckw="$caps_keyword" '
-        BEGIN { dev = ""; caps = ""; dev_match = 0; caps_match = 0; matched_by = "" }
-        /^[[:space:]]*Device:[[:space:]]+/ {
-            dev = $0
-            dev_match = 0
-            caps = ""
-            matched_by = ""
-            if (dkw != "" && index(dev, dkw) > 0) dev_match = 1
-            next
-        }
-        /^[[:space:]]*Capabilities:[[:space:]]+/ {
-            caps = $0
-            caps_match = 0
-            if (ckw != "" && index(caps, ckw) > 0) caps_match = 1
-            next
-        }
-        /^[[:space:]]*Kernel:[[:space:]]+/ {
-            kernel = $0
-            sub(/^[[:space:]]*Kernel:[[:space:]]+/, "", kernel)
+        function flush_device(    dev_match, caps_match, do_print, matched_by) {
+            if (kernel == "") return
 
-            # 决定是否同时满足两个关键词或单个关键词
+            dev_match = (dkw != "" && index(dev, dkw) > 0)
+            caps_match = (ckw != "" && index(caps, ckw) > 0)
             do_print = 0
+            matched_by = ""
+
             if (dkw != "" && ckw != "") {
                 if (dev_match && caps_match) { matched_by = "both"; do_print = 1 }
             } else if (dkw != "") {
@@ -60,6 +47,27 @@ discover_input_devices() {
                 print "DEBUG_MATCH(" matched_by "): Device: " dev " | Capabilities: " caps " | Kernel: " kernel > "/dev/stderr"
                 print kernel
             }
+        }
+
+        BEGIN { dev = ""; caps = ""; kernel = "" }
+        /^[[:space:]]*Device:[[:space:]]+/ {
+            flush_device()
+            dev = $0
+            caps = ""
+            kernel = ""
+            next
+        }
+        /^[[:space:]]*Kernel:[[:space:]]+/ {
+            kernel = $0
+            sub(/^[[:space:]]*Kernel:[[:space:]]+/, "", kernel)
+            next
+        }
+        /^[[:space:]]*Capabilities:[[:space:]]+/ {
+            caps = $0
+            next
+        }
+        END {
+            flush_device()
         }
     ' | awk '!seen[$0]++'
 }
@@ -156,7 +164,7 @@ fi
 
 if [[ ${#INPUT_DEVICES[@]} -eq 0 ]]; then
     if [[ -n "$CAPABILITIES_KEYWORD" ]]; then
-        echo "配置错误: 未找到匹配 device_keyword 或 capabilities_keyword 的输入设备" >&2
+        echo "配置错误: 未找到同时匹配 device_keyword 与 capabilities_keyword 的输入设备" >&2
     else
         echo "配置错误: 未找到名称包含 ${DEVICE_KEYWORD} 的输入设备" >&2
     fi
