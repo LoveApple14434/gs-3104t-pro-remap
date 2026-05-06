@@ -18,29 +18,40 @@ discover_input_devices() {
     local device_keyword="$1"
     local caps_keyword="${2:-}"
 
+    # Debug: 显示传入的匹配参数
+    echo "DEBUG: discover_input_devices called with device_keyword='${device_keyword}' capabilities_keyword='${caps_keyword}'" >&2
+
     if ! command -v libinput >/dev/null 2>&1; then
         echo "配置错误: 找不到 libinput 命令，请先安装 libinput" >&2
         exit 1
     fi
 
     libinput list-devices | awk -v dkw="$device_keyword" -v ckw="$caps_keyword" '
-        BEGIN { include = 0; caps = "" }
+        BEGIN { include = 0; caps = ""; dev = "" }
         /^[[:space:]]*Device:[[:space:]]+/ {
             dev = $0
-            include = (dkw != "" && dev ~ dkw)
+            include = 0
+            if (dkw != "" && index(dev, dkw) > 0) include = 1
             caps = ""
             next
         }
         /^[[:space:]]*Capabilities:[[:space:]]+/ {
             caps = $0
-            if (ckw != "" && caps ~ ckw) include = 1
+            if (ckw != "" && index(caps, ckw) > 0) {
+                include = 1
+                matched_by = "capabilities"
+            }
             next
         }
         include && /^[[:space:]]*Kernel:[[:space:]]+/ {
             kernel = $0
             sub(/^[[:space:]]*Kernel:[[:space:]]+/, "", kernel)
             # 将匹配到的设备行也写入 stderr 以便调试
-            print "DEBUG_MATCH: Device: " dev " | Capabilities: " caps " | Kernel: " kernel > "/dev/stderr"
+            if (matched_by == "capabilities") {
+                print "DEBUG_MATCH(cap): Device: " dev " | Capabilities: " caps " | Kernel: " kernel > "/dev/stderr"
+            } else {
+                print "DEBUG_MATCH(dev): Device: " dev " | Capabilities: " caps " | Kernel: " kernel > "/dev/stderr"
+            }
             print kernel
         }
     ' | awk '!seen[$0]++'
