@@ -39,6 +39,8 @@ discover_input_devices() {
         include && /^[[:space:]]*Kernel:[[:space:]]+/ {
             kernel = $0
             sub(/^[[:space:]]*Kernel:[[:space:]]+/, "", kernel)
+            # 将匹配到的设备行也写入 stderr 以便调试
+            print "DEBUG_MATCH: Device: " dev " | Capabilities: " caps " | Kernel: " kernel > "/dev/stderr"
             print kernel
         }
     ' | awk '!seen[$0]++'
@@ -121,6 +123,9 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
 fi
 
 parse_yaml_config "$CONFIG_FILE"
+
+# Debug: 输出当前用于匹配的关键词，便于诊断为什么匹配过多设备
+echo "DEBUG: device_keyword='${DEVICE_KEYWORD}' capabilities_keyword='${CAPABILITIES_KEYWORD}'" >&2
 
 if [[ ${#INPUT_DEVICES[@]} -eq 0 ]]; then
     mapfile -t INPUT_DEVICES < <(discover_input_devices "$DEVICE_KEYWORD" "$CAPABILITIES_KEYWORD")
