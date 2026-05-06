@@ -16,16 +16,24 @@ strip_yaml_value() {
 
 discover_input_devices() {
     local device_keyword="$1"
+    local caps_keyword="${2:-}"
 
     if ! command -v libinput >/dev/null 2>&1; then
         echo "配置错误: 找不到 libinput 命令，请先安装 libinput" >&2
         exit 1
     fi
 
-    libinput list-devices | awk -v keyword="$device_keyword" '
-        BEGIN { include = 0 }
+    libinput list-devices | awk -v dkw="$device_keyword" -v ckw="$caps_keyword" '
+        BEGIN { include = 0; caps = "" }
         /^[[:space:]]*Device:[[:space:]]+/ {
-            include = ($0 ~ keyword)
+            dev = $0
+            include = (dkw != "" && dev ~ dkw)
+            caps = ""
+            next
+        }
+        /^[[:space:]]*Capabilities:[[:space:]]+/ {
+            caps = $0
+            if (ckw != "" && caps ~ ckw) include = 1
             next
         }
         include && /^[[:space:]]*Kernel:[[:space:]]+/ {
@@ -44,6 +52,7 @@ parse_yaml_config() {
     DEVICE_KEYWORD="GS3104T"
     INPUT_DEVICES=()
     GRAB_INPUT="true"
+    CAPABILITIES_KEYWORD=""
     MAP_RULES=()
 
     while IFS= read -r line || [[ -n "$line" ]]; do
@@ -62,6 +71,12 @@ parse_yaml_config() {
 
         if [[ "$line" =~ ^[[:space:]]*device_keyword:[[:space:]]*(.+)[[:space:]]*$ ]]; then
             DEVICE_KEYWORD="$(strip_yaml_value "${BASH_REMATCH[1]}")"
+            section=""
+            continue
+        fi
+
+        if [[ "$line" =~ ^[[:space:]]*capabilities_keyword:[[:space:]]*(.+)[[:space:]]*$ ]]; then
+            CAPABILITIES_KEYWORD="$(strip_yaml_value "${BASH_REMATCH[1]}")"
             section=""
             continue
         fi
@@ -108,7 +123,7 @@ fi
 parse_yaml_config "$CONFIG_FILE"
 
 if [[ ${#INPUT_DEVICES[@]} -eq 0 ]]; then
-    mapfile -t INPUT_DEVICES < <(discover_input_devices "$DEVICE_KEYWORD")
+    mapfile -t INPUT_DEVICES < <(discover_input_devices "$DEVICE_KEYWORD" "$CAPABILITIES_KEYWORD")
 fi
 
 if [[ ${#MAP_RULES[@]} -eq 0 ]]; then
@@ -117,7 +132,11 @@ if [[ ${#MAP_RULES[@]} -eq 0 ]]; then
 fi
 
 if [[ ${#INPUT_DEVICES[@]} -eq 0 ]]; then
-    echo "配置错误: 未找到名称包含 ${DEVICE_KEYWORD} 的输入设备" >&2
+    if [[ -n "$CAPABILITIES_KEYWORD" ]]; then
+        echo "配置错误: 未找到匹配 device_keyword 或 capabilities_keyword 的输入设备" >&2
+    else
+        echo "配置错误: 未找到名称包含 ${DEVICE_KEYWORD} 的输入设备" >&2
+    fi
     exit 1
 fi
 

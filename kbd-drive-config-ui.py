@@ -30,6 +30,7 @@ class ConfigData:
     grab_input: bool = True
     input_devices: list[str] = field(default_factory=list)
     map_rules: list[tuple[str, str]] = field(default_factory=list)
+    capabilities_keyword: str = ""
 
 
 def strip_yaml_value(value: str) -> str:
@@ -54,6 +55,11 @@ def parse_config_text(text: str) -> ConfigData:
 
         if line.startswith("device_keyword:"):
             config.device_keyword = strip_yaml_value(line.split(":", 1)[1])
+            section = ""
+            continue
+
+        if line.startswith("capabilities_keyword:"):
+            config.capabilities_keyword = strip_yaml_value(line.split(":", 1)[1])
             section = ""
             continue
 
@@ -94,21 +100,22 @@ def parse_config_text(text: str) -> ConfigData:
 
 
 def serialize_config(config: ConfigData) -> str:
-    lines: list[str] = [f'device_keyword: "{escape_yaml_value(config.device_keyword)}"']
-    lines.append(f"grab_input: {'true' if config.grab_input else 'false'}")
+  lines: list[str] = [f'device_keyword: "{escape_yaml_value(config.device_keyword)}"']
+  lines.append(f'capabilities_keyword: "{escape_yaml_value(config.capabilities_keyword)}"')
+  lines.append(f"grab_input: {'true' if config.grab_input else 'false'}")
 
-    if config.input_devices:
-        lines.append("")
-        lines.append("input_devices:")
-        for device in config.input_devices:
-            lines.append(f'  - "{escape_yaml_value(device)}"')
-
+  if config.input_devices:
     lines.append("")
-    lines.append("map_rules:")
-    for src_key, dst_key in config.map_rules:
-        lines.append(f'  - "{escape_yaml_value(src_key)}:{escape_yaml_value(dst_key)}"')
+    lines.append("input_devices:")
+    for device in config.input_devices:
+      lines.append(f'  - "{escape_yaml_value(device)}"')
 
-    return "\n".join(lines).rstrip() + "\n"
+  lines.append("")
+  lines.append("map_rules:")
+  for src_key, dst_key in config.map_rules:
+    lines.append(f'  - "{escape_yaml_value(src_key)}:{escape_yaml_value(dst_key)}"')
+
+  return "\n".join(lines).rstrip() + "\n"
 
 
 def validate_config(config: ConfigData) -> list[str]:
@@ -399,6 +406,10 @@ def render_page() -> str:
                 <input id="deviceKeyword" type="text" autocomplete="off">
               </div>
               <div class="field">
+                <label for="capabilitiesKeyword">capabilities_keyword</label>
+                <input id="capabilitiesKeyword" type="text" autocomplete="off">
+              </div>
+              <div class="field">
                 <label>grab_input</label>
                 <label class="switch"><input id="grabInput" type="checkbox"><span>启用抓取输入</span></label>
               </div>
@@ -469,6 +480,7 @@ def render_page() -> str:
     };
 
     const deviceKeyword = document.getElementById('deviceKeyword');
+    const capabilitiesKeyword = document.getElementById('capabilitiesKeyword');
     const grabInput = document.getElementById('grabInput');
     const inputDevices = document.getElementById('inputDevices');
     const mapRules = document.getElementById('mapRules');
@@ -494,10 +506,12 @@ def render_page() -> str:
 
     function buildYaml() {
       const deviceKeywordValue = deviceKeyword.value.trim();
+      const capabilitiesKeywordValue = capabilitiesKeyword.value.trim();
       const inputDeviceLines = inputDevices.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
       const ruleLines = mapRules.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
       const rendered = [];
       rendered.push(`device_keyword: ${yamlQuote(deviceKeywordValue)}`);
+      rendered.push(`capabilities_keyword: ${yamlQuote(capabilitiesKeywordValue)}`);
       rendered.push(`grab_input: ${grabInput.checked ? 'true' : 'false'}`);
       if (inputDeviceLines.length) {
         rendered.push('');
@@ -582,6 +596,7 @@ def render_page() -> str:
       const payload = await apiGet('/api/state');
       state.configPath = payload.config_path;
       deviceKeyword.value = payload.config.device_keyword || '';
+      capabilitiesKeyword.value = payload.config.capabilities_keyword || '';
       grabInput.checked = Boolean(payload.config.grab_input);
       inputDevices.value = (payload.config.input_devices || []).join('\n');
       mapRules.value = (payload.config.map_rules || []).map(rule => `${rule[0]}:${rule[1]}`).join('\n');
@@ -599,6 +614,7 @@ def render_page() -> str:
       }
       const payload = {
         device_keyword: deviceKeyword.value.trim(),
+        capabilities_keyword: capabilitiesKeyword.value.trim(),
         grab_input: grabInput.checked,
         input_devices: inputDevices.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean),
         map_rules: mapRules.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean),
@@ -629,7 +645,7 @@ def render_page() -> str:
       });
     });
 
-    [deviceKeyword, grabInput, inputDevices, mapRules].forEach(element => {
+    [deviceKeyword, capabilitiesKeyword, grabInput, inputDevices, mapRules].forEach(element => {
       element.addEventListener('input', renderPreviewAndValidation);
       element.addEventListener('change', renderPreviewAndValidation);
     });
@@ -686,10 +702,11 @@ class EditorRequestHandler(BaseHTTPRequestHandler):
             {
                 "config_path": str(config_path),
                 "config": {
-                    "device_keyword": config.device_keyword,
-                    "grab_input": config.grab_input,
-                    "input_devices": config.input_devices,
-                    "map_rules": config.map_rules,
+                  "device_keyword": config.device_keyword,
+                  "capabilities_keyword": config.capabilities_keyword,
+                  "grab_input": config.grab_input,
+                  "input_devices": config.input_devices,
+                  "map_rules": config.map_rules,
                 },
                 "service": read_service_status(),
             }
@@ -718,10 +735,11 @@ class EditorRequestHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/config":
                 payload = self._read_json()
                 config = ConfigData(
-                    device_keyword=str(payload.get("device_keyword", "")).strip(),
-                    grab_input=bool(payload.get("grab_input", True)),
-                    input_devices=[str(item).strip() for item in payload.get("input_devices", []) if str(item).strip()],
-                    map_rules=[],
+                  device_keyword=str(payload.get("device_keyword", "")).strip(),
+                  capabilities_keyword=str(payload.get("capabilities_keyword", "")).strip(),
+                  grab_input=bool(payload.get("grab_input", True)),
+                  input_devices=[str(item).strip() for item in payload.get("input_devices", []) if str(item).strip()],
+                  map_rules=[],
                 )
                 for index, rule in enumerate(payload.get("map_rules", []), start=1):
                     if not isinstance(rule, str):

@@ -8,6 +8,8 @@
 
 脚本会先执行 `libinput list-devices`，查找设备名包含配置项 `device_keyword` 的条目，然后读取对应的 `Kernel:` 路径（例如 `/dev/input/event11`），再把这些内核设备交给 `evsieve`。
 
+新增：现在脚本也支持通过 `capabilities_keyword` 关键字匹配 `libinput list-devices` 输出里的 `Capabilities:` 行，从而按设备的能力（例如包含 `keys`、`leds` 等字段）来筛选设备。
+
 如果你想手动指定设备，也可以在 `remap-gs3104tpro.yaml` 里保留 `input_devices` 列表；否则脚本会自动发现。
 
 ## 如何确定重映射规则
@@ -30,6 +32,7 @@ map_rules:
 ## 配置文件
 
 - `remap-gs3104tpro.yaml`：重映射规则配置，包含 `device_keyword`、`grab_input` 和 `map_rules`
+- `remap-gs3104tpro.yaml`：重映射规则配置，包含 `device_keyword`、`capabilities_keyword`、`grab_input` 和 `map_rules`
 - `remap-gs3104tpro.sh`：读取 YAML 配置并启动 evsieve
 - `kbd-drive-config-ui.py`：单页 Web 配置编辑器，支持读入、编辑、预览和保存 YAML
 
@@ -46,6 +49,7 @@ map_rules 中每一项格式为 源键:目标键，例如 brightnessdown:f1。
 它目前支持：
 
 - 编辑 `device_keyword`
+- 编辑 `device_keyword` 和 `capabilities_keyword`
 - 切换 `grab_input`
 - 编辑 `input_devices`
 - 编辑 `map_rules`

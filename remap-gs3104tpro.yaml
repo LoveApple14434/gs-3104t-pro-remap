@@ -1,4 +1,5 @@
 device_keyword: "GS3104T"
+capabilities_keyword: ""
 
 grab_input: true
 
